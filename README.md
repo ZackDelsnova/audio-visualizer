@@ -5,5 +5,5 @@ A simple Rust program that plays an audio file and visualizes it in real time.
 ## Usage
 
 ``` bash
-cargo run -- path/to/song.mp3
+cargo run -- "<audiofile.mp3>"
 ```
