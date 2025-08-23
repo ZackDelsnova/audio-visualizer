@@ -1,0 +1,9 @@
+[package]
+name = "audio-visualizer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rodio = "0.17"
+symphonia = { version = "0.5", features = ["all"]}
+macroquad = "0.4"
