@@ -1,11 +1,20 @@
 use macroquad::prelude::*;
-use rodio::{Decoder, OutputStream, Sink, Source};
-// use symphonia::core::sample;
-use std::{env, vec};
-use std::fs::File;
-use std::io::BufReader;
-use std::thread;
-use std::sync::{Arc, Mutex};
+use rodio::{
+    Decoder,
+    OutputStream,
+    Sink,
+    Source
+};
+use std::{
+    env,
+    vec,
+    fs::File,
+    io::BufReader,
+    sync::{
+        Arc,
+        Mutex
+    }
+};
 
 struct RingBuffer {
     data: Vec<f32>,
@@ -86,11 +95,26 @@ async fn main() {
 
     let file_path = &args[1];
     let buffer = Arc::new(Mutex::new(RingBuffer::new(2048)));
-    play_audio(file_path.clone(), buffer.clone());
+
+    let (_stream, handle) = OutputStream::try_default().unwrap();
+
+    let sink = Sink::try_new(&handle).unwrap();
+
+    let file = File::open(file_path).unwrap();
+    let decoder = Decoder::new(BufReader::new(file)).unwrap();
+
+    let vis_source = VisualizerSource {
+        inner: decoder,
+        buffer: buffer.clone(),
+    };
+
+    sink.append(vis_source);
 
     let num_bars = 64;
+    let smoothing = 0.2;
+    let mut last_bars = vec![0.0; num_bars];
 
-    loop {
+    while !sink.empty() {
         clear_background(BLACK);
 
         let samples = buffer.lock().unwrap().as_vec();
@@ -101,33 +125,17 @@ async fn main() {
             let avg_amp = chunk.iter().map(|v| v.abs()).sum::<f32>() / chunk.len() as f32;
 
             let bar_height = avg_amp * screen_height() * 0.8;
+
+            last_bars[i] = last_bars[i] * (1.0 - smoothing) + bar_height * smoothing; // smoothing 
+
             let bar_width = screen_width() / num_bars as f32;
 
             let x = i as f32 * bar_width;
-            let y = screen_height() - bar_height;
+            let y = screen_height() - last_bars[i];
 
-            draw_rectangle(x, y, bar_width * 0.9, bar_height, BLUE);
+            draw_rectangle(x, y, bar_width * 0.9, last_bars[i], BLUE);
         }
 
         next_frame().await;
     }
-}
-
-fn play_audio(file_path: String, buffer: Arc<Mutex<RingBuffer>>) {
-    thread::spawn(move || {
-        let (_stream, handle) = OutputStream::try_default().unwrap();
-
-        let sink = Sink::try_new(&handle).unwrap();
-
-        let file = File::open(file_path.clone()).unwrap();
-        let decoder = Decoder::new(BufReader::new(file)).unwrap();
-
-        let vis_source = VisualizerSource {
-            inner: decoder,
-            buffer: buffer.clone(),
-        };
-
-        sink.append(vis_source);
-        sink.sleep_until_end();
-    });
 }
