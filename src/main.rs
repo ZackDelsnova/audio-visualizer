@@ -7,13 +7,13 @@ use rodio::{
 };
 use std::{
     env,
-    vec,
     fs::File,
     io::BufReader,
     sync::{
         Arc,
         Mutex
-    }
+    },
+    vec
 };
 
 struct RingBuffer {
@@ -93,6 +93,9 @@ async fn main() {
         return;
     }
 
+    let bg_color = if args.len() > 2 { parse_hex(&args[2]) } else { BLACK };
+    let bar_color = if args.len() > 3 { parse_hex(&args[3]) } else { WHITE };
+
     let file_path = &args[1];
     let buffer = Arc::new(Mutex::new(RingBuffer::new(2048)));
 
@@ -115,7 +118,7 @@ async fn main() {
     let mut last_bars = vec![0.0; num_bars];
 
     while !sink.empty() {
-        clear_background(BLACK);
+        clear_background(bg_color);
 
         let samples = buffer.lock().unwrap().as_vec();
 
@@ -133,9 +136,22 @@ async fn main() {
             let x = i as f32 * bar_width;
             let y = screen_height() - last_bars[i];
 
-            draw_rectangle(x, y, bar_width * 0.9, last_bars[i], BLUE);
+            draw_rectangle(x, y, bar_width * 0.9, last_bars[i], bar_color);
         }
 
         next_frame().await;
     }
+}
+
+fn parse_hex(hex: &str) -> Color {
+    let hex = hex.trim_start_matches('#');
+    let value = u32::from_str_radix(hex, 16).expect("invalid hex color");
+
+    let value = match hex.len() {
+        6 => (value << 8) | 0xff,
+        8 => value,
+        _ => panic!("hex color in rrggbbaa or rrggbb"),
+    };
+    
+    Color::from_hex(value)
 }
