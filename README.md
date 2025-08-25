@@ -3,6 +3,7 @@
 A simple Rust program that plays an audio file and visualizes it in real time.
 
 ## Requirments
+
 - Rust
 - Desktop Development with C++
 
