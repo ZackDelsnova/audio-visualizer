@@ -94,7 +94,7 @@ async fn main() {
     }
 
     let bg_color = if args.len() > 2 { parse_hex(&args[2]) } else { BLACK };
-    let bar_color = if args.len() > 3 { parse_hex(&args[3]) } else { WHITE };
+    let bar_color = if args.len() > 3 { parse_hex(&args[3]) } else { BLUE };
 
     let file_path = &args[1];
     let buffer = Arc::new(Mutex::new(RingBuffer::new(2048)));
